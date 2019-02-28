@@ -15,9 +15,9 @@ from psychopy import event
 
 ########################################
 
-n_trials = 7 # ===== number of trials
+n_trials = 100 # ===== number of trials
 
-p_rounds = 5 # ===== number of practice rounds
+p_rounds = 10 # ===== number of practice rounds
 
 wait_time = 1 # how long to wait for response before moving to feedback screen
 
