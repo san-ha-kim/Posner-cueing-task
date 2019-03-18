@@ -391,11 +391,11 @@ def main():
         waitKeys(keyList=['space'], timeStamped=False)
 
         # == Practice trials, not recording responses ==
-        # trial(n_practice, False, file)
+        trial(n_practice, False, file)
 
         # == Practice over screen and key
-        # Write(font_size).instructions("practice finished")
-        # waitKeys(keyList=['space'], timeStamped=False)
+        Write(font_size).instructions("practice finished")
+        waitKeys(keyList=['space'], timeStamped=False)
 
         # == Real trials
         trial(n_real, True, file)
