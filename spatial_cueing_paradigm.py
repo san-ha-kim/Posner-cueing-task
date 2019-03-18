@@ -11,7 +11,7 @@ n_practice = 10
 p_valid = 0.8
 
 # ===== Window size =====
-win_width, win_height = 800, 600
+win_width, win_height = 1920, 1080
 win_dimension = (win_width, win_height)
 
 # ===== Colours to be used =====
