@@ -25,12 +25,14 @@ RED = [255, 0, 0]
 cue_color = YELLOW
 
 # ===== Times and durations in seconds =====
-t_fix = 0.1
-t_cue = 0.05
-t_feedback = 0.1
-t_target = 0.01  # for how long the target appears
-t_answer = 0.1  # for how long to make an answer choice
-v_sync = 0
+# -- v sync is important to match participants' responses to the monitor's refresh rate
+v_sync = 0.01832608
+
+t_fix = 1.5 - v_sync
+t_cue = 0.05 - v_sync
+t_feedback = 1 - v_sync
+t_target = 0.05 - v_sync  # for how long the target appears
+t_answer = 1 - v_sync  # for how long to make an answer choice
 
 # ===== Parameters for font, text and writing =====
 font_size = 30
@@ -171,9 +173,9 @@ class Write:
             fb_nr.draw()
 
 
-def record_response(validity, target_location, correct, RT, log):
+def record_response(cue_diff, validity, target_location, correct, RT, log):
     """function to record responses"""
-    header_list = [validity, target_location, correct, RT]
+    header_list = [cue_diff, validity, target_location, correct, RT]
     header_str = map(str, header_list)
     header_line = ",".join(header_str)
     header_line += "\n"
@@ -187,12 +189,15 @@ def default_screen():
 
 
 def cue_and_target(validity, target_location, record, log):
-    """function to cue and present target"""
+    """
+    function to cue and present target
+    cue onset and offset are used to calculate the v_sync of the monitor
+    """
     if validity == "valid":
         if target_location == "left":
             fixation_cross.draw()
             Box().cue("left")
-            disp.flip()
+            cue_onset = disp.flip()
             wait(t_cue)
 
             default_screen()
@@ -201,13 +206,14 @@ def cue_and_target(validity, target_location, record, log):
             wait(t_target)
 
             default_screen()
-            disp.flip()
-            # wait(t_answer)
+            cue_offset = disp.flip()
+
+            cue_diff = cue_offset - cue_onset
 
         if target_location == "right":
             fixation_cross.draw()
             Box().cue("right")
-            disp.flip()
+            cue_onset = disp.flip()
             wait(t_cue)
 
             default_screen()
@@ -216,13 +222,15 @@ def cue_and_target(validity, target_location, record, log):
             wait(t_target)
 
             default_screen()
-            disp.flip()
+            cue_offset = disp.flip()
+
+            cue_diff = cue_offset - cue_onset
 
     if validity == "invalid":
         if target_location == "left":
             fixation_cross.draw()
             Box().cue("right")
-            disp.flip()
+            cue_onset = disp.flip()
             wait(t_cue)
 
             default_screen()
@@ -231,12 +239,14 @@ def cue_and_target(validity, target_location, record, log):
             wait(t_target)
 
             default_screen()
-            disp.flip()
+            cue_offset = disp.flip()
+
+            cue_diff = cue_offset - cue_onset
 
         if target_location == "right":
             fixation_cross.draw()
             Box().cue("left")
-            disp.flip()
+            cue_onset = disp.flip()
             wait(t_cue)
 
             default_screen()
@@ -245,7 +255,9 @@ def cue_and_target(validity, target_location, record, log):
             wait(t_target)
 
             default_screen()
-            disp.flip()
+            cue_offset = disp.flip()
+
+            cue_diff = cue_offset - cue_onset
 
     # -- Returns a list of which key is pressed in a predefined list
     resp_list = waitKeys(maxWait=t_answer, keyList=['left', 'right'], timeStamped=True)
@@ -272,7 +284,7 @@ def cue_and_target(validity, target_location, record, log):
         RT = "no_response"
 
     if record:
-        record_response(validity, target_location, correct, RT, log)
+        record_response(cue_diff, validity, target_location, correct, RT, log)
 
 
 def trial(trial_number, record_answers, log):
@@ -305,7 +317,7 @@ def trial(trial_number, record_answers, log):
     pool = ["VL", "VR", "IL", "IR"]
 
     while c_total < trial_number:
-        # print("Total trials completed: {:d}".format(c_total))
+        print("Total trials completed: {:d}".format(c_total))
         default_screen()
         disp.flip()
         wait(t_fix)
@@ -348,7 +360,6 @@ def trial(trial_number, record_answers, log):
                 pool.remove("IL")
 
         if ticket == "IR" and n_invalid_right > 0:  # IR
-            # if n_invalid_right > 0:
             cue_and_target(invalid, right, record, log)
             wait(t_feedback)
             n_invalid_right -= 1
@@ -380,11 +391,11 @@ def main():
         waitKeys(keyList=['space'], timeStamped=False)
 
         # == Practice trials, not recording responses ==
-        trial(n_practice, False, file)
+        # trial(n_practice, False, file)
 
         # == Practice over screen and key
-        Write(font_size).instructions("practice finished")
-        waitKeys(keyList=['space'], timeStamped=False)
+        # Write(font_size).instructions("practice finished")
+        # waitKeys(keyList=['space'], timeStamped=False)
 
         # == Real trials
         trial(n_real, True, file)
