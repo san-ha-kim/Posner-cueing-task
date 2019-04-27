@@ -1,9 +1,9 @@
 from psychopy.visual import Window, Rect, ShapeStim, TextStim, Circle
 from psychopy.core import wait
-from psychopy.event import waitKeys
+from psychopy.event import waitKeys, getKeys
 from psychopy.gui import DlgFromDict
 from random import choice
-import time, sys
+import time, sys, os
 
 # ===== Number of trials =====
 n_real = 100
@@ -23,14 +23,15 @@ GREEN = [0, 255, 0]
 RED = [255, 0, 0]
 
 cue_color = YELLOW
+background_color = GREY
 
 # ===== Times and durations in seconds =====
 # -- v sync is important to match participants' responses to the monitor's refresh rate
-v_sync = 0.01832608
+v_sync = 0.0  # (average of cue_diff)-t_cue
 
 t_fix = 1.5 - v_sync
 t_cue = 0.05 - v_sync
-t_feedback = 1 - v_sync
+t_feedback = 3 - v_sync
 t_target = 0.05 - v_sync  # for how long the target appears
 t_answer = 1 - v_sync  # for how long to make an answer choice
 
@@ -59,8 +60,10 @@ target_size = 30
 # ===== CSV file preparation ======
 session_info = {'Observer': 'Type observer ID', 'Participant': 'Type participant ID'}
 date_Str = time.strftime("%b_%d_%H%M", time.localtime())  # add the current time
-
 file_prefix = date_Str + ' pcpnt_' + session_info['Participant'] + '_obsvr_'+session_info['Observer']
+
+save_directory = r"INSERT SAVE PATH HERE"
+save_file = os.path.join(save_directory + "\\" + file_prefix + ".csv")
 
 
 def convertRGB(RGB):
@@ -74,9 +77,9 @@ def convertRGB(RGB):
 
     
 # ===== Display window =====
-disp = Window(size=win_dimension, pos=(0, 0), color=GREY, colorSpace="rgb255", fullscr=False, units="pix")
+disp = Window(size=win_dimension, pos=(0, 0), color=background_color, colorSpace="rgb255", fullscr=False, units="pix")
 # - Fixation cross in the center of display
-fixation_cross = ShapeStim(disp, lineWidth=5, lineColor=convertRGB(BLACK), fillColor=convertRGB(BLACK), vertices='cross')
+fixation_cross = ShapeStim(disp, lineWidth=7000, lineColor=convertRGB(BLACK), fillColor=convertRGB(BLACK), vertices='cross')
 
 
 class Box:
@@ -202,11 +205,11 @@ def cue_and_target(validity, target_location, record, log):
 
             default_screen()
             Target(convertRGB(BLACK)).draw("left")
-            t_target_onset = disp.flip()
+            cue_offset = disp.flip()
             wait(t_target)
 
             default_screen()
-            cue_offset = disp.flip()
+            target_offset = disp.flip()
 
             cue_diff = cue_offset - cue_onset
 
@@ -218,11 +221,11 @@ def cue_and_target(validity, target_location, record, log):
 
             default_screen()
             Target(convertRGB(BLACK)).draw("right")
-            t_target_onset = disp.flip()
+            cue_offset = disp.flip()
             wait(t_target)
 
             default_screen()
-            cue_offset = disp.flip()
+            target_offset = disp.flip()
 
             cue_diff = cue_offset - cue_onset
 
@@ -235,11 +238,11 @@ def cue_and_target(validity, target_location, record, log):
 
             default_screen()
             Target(convertRGB(BLACK)).draw("left")
-            t_target_onset = disp.flip()
+            cue_offset = disp.flip()
             wait(t_target)
 
             default_screen()
-            cue_offset = disp.flip()
+            target_offset = disp.flip()
 
             cue_diff = cue_offset - cue_onset
 
@@ -251,11 +254,11 @@ def cue_and_target(validity, target_location, record, log):
 
             default_screen()
             Target(convertRGB(BLACK)).draw("right")
-            t_target_onset = disp.flip()
+            cue_offset = disp.flip()
             wait(t_target)
 
             default_screen()
-            cue_offset = disp.flip()
+            target_offset = disp.flip()
 
             cue_diff = cue_offset - cue_onset
 
@@ -269,7 +272,7 @@ def cue_and_target(validity, target_location, record, log):
         else:
             correct = 0
 
-        RT = t_keypress - t_target_onset
+        RT = t_keypress - target_offset
 
         if correct == 1:
             Write(font_size).feedback_text("correct")
@@ -293,7 +296,9 @@ def trial(trial_number, record_answers, log):
     n_valid_left = n_valid_right = round((trial_number*p_valid)/2)
     n_invalid_left = n_invalid_right = round((trial_number*(1-p_valid))/2)
 
-    print(n_valid_left, n_valid_right, n_invalid_left, n_invalid_right)
+    print("Num. of trials per condition: valid, left: {VL:d}; valid, right: {VR:d}, "
+          "invalid, left: {IL:d}; invalid, right: {IR:d}".format(VL=n_valid_left, VR=n_valid_right,
+                                                                 IL=n_invalid_left, IR=n_invalid_right))
 
     # == count of total trials completed
     c_total = 0
@@ -318,6 +323,8 @@ def trial(trial_number, record_answers, log):
 
     while c_total < trial_number:
         print("Total trials completed: {:d}".format(c_total))
+
+        # -- Display fixation screen
         default_screen()
         disp.flip()
         wait(t_fix)
@@ -379,9 +386,15 @@ def main():
 
     if dlg_box.OK:  # - If participant information has been entered
 
+        quitcontrol = getKeys(keyList=["escape"], timeStamped=False)
+        # quitkeypress = quitcontrol[0]
+
+        print(quitcontrol)
+
+        # if quitkeypress is not None:
         # == Prepare file to record responses ==
-        file = open(file_prefix+".csv", "w")
-        header = ["validity", "target_location", "correct", "response_time"]
+        file = open(save_file, "w")
+        header = ["cud_diff", "validity", "target_location", "correct", "response_time"]
         delim = ",".join(header)
         delim += "\n"
         file.write(delim)
@@ -406,6 +419,8 @@ def main():
         file.close()
         disp.close()
         sys.exit()
+        # else:
+        #     sys.exit()
 
     else:
         print("User has cancelled")
